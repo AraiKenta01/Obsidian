@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "_Templates/tpl_source.md",
+                "file": "_Templates/instruction_zettel_extraction.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "tpl_source"
+              "title": "instruction_zettel_extraction"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "_Templates/tpl_source.md",
+                "file": "_Templates/instruction_zettel_extraction.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "tpl_sourceへのバックリンク"
+              "title": "instruction_zettel_extractionへのバックリンク"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "_Templates/tpl_source.md",
+                "file": "_Templates/instruction_zettel_extraction.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "tpl_sourceからのアウトゴーイングリンク"
+              "title": "instruction_zettel_extractionからのアウトゴーイングリンク"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "_Templates/tpl_source.md",
+                "file": "_Templates/instruction_zettel_extraction.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "tpl_sourceのアウトライン"
+              "title": "instruction_zettel_extractionのアウトライン"
             }
           },
           {
@@ -196,12 +196,12 @@
   },
   "active": "de8e04e121f8baef",
   "lastOpenFiles": [
+    "_Templates/tpl_moc.md",
+    "_Templates/tpl_source.md",
     "instruction_zettel_extraction.md",
     "無題のファイル.canvas",
     "_Templates/instruction_zettel_extraction.md",
-    "_Templates/tpl_source.md",
     "_Templates/tpl_zettel.md",
-    "_Templates/tpl_moc.md",
     "Clippings/【科学技術計算講座3-8】クランク=ニコルソン法のプログラミング.md",
     "_Assets",
     "_Templates",
