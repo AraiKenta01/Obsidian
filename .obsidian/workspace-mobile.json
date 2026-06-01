@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ようこそ.md",
+                "file": "_Templates/TAKE NOTES！.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ようこそ"
+              "title": "TAKE NOTES！"
             }
           }
         ]
@@ -156,6 +156,7 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "obsidian42-brat:BRAT": false,
       "switcher:クイックスイッチャーを開く": false,
       "graph:グラフビューを開く": false,
       "canvas:新規キャンバスを作成": false,
@@ -167,5 +168,21 @@
     }
   },
   "active": "57ad07cea1734fdb",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "_Templates/tpl_source.md",
+    "_Templates/TAKE NOTES！.md",
+    "_Templates/tpl_zettel.md",
+    "_Templates/instruction_zettel_extraction.md",
+    "10_Sources/Books",
+    "ようこそ.md",
+    "20_Zettel",
+    "10_Sources",
+    "_Assets",
+    "_Templates/tpl_moc.md",
+    "_Templates",
+    "40_Projects",
+    "00_Inbox",
+    "30_MOC",
+    "instruction_zettel_extraction.md"
+  ]
 }
