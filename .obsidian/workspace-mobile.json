@@ -15,7 +15,7 @@
               "state": {
                 "file": "10_Sources/Books/TAKE NOTES！.md",
                 "mode": "source",
-                "source": false
+                "source": true
               },
               "icon": "lucide-file",
               "title": "TAKE NOTES！"
@@ -150,9 +150,19 @@
           "icon": "lucide-list",
           "title": "アウトライン"
         }
+      },
+      {
+        "id": "5ce91b39c2da0c89",
+        "type": "leaf",
+        "state": {
+          "type": "git-view",
+          "state": {},
+          "icon": "git-pull-request",
+          "title": "Source Control"
+        }
       }
     ],
-    "currentTab": 0
+    "currentTab": 3
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -169,8 +179,9 @@
   },
   "active": "57ad07cea1734fdb",
   "lastOpenFiles": [
-    "_Templates/tpl_source.md",
+    "10_Sources/Documents/ERM基礎研修 2.md",
     "10_Sources/Books/TAKE NOTES！.md",
+    "_Templates/tpl_source.md",
     "_Templates/tpl_zettel.md",
     "_Templates/instruction_zettel_extraction.md",
     "10_Sources/Books",
