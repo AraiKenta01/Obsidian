@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "_Templates/TAKE NOTES！.md",
+                "file": "10_Sources/Books/TAKE NOTES！.md",
                 "mode": "source",
                 "source": false
               },
@@ -167,10 +167,10 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "57ad07cea1734fdb",
+  "active": "6df1567dfe9d7c7b",
   "lastOpenFiles": [
     "_Templates/tpl_source.md",
-    "_Templates/TAKE NOTES！.md",
+    "10_Sources/Books/TAKE NOTES！.md",
     "_Templates/tpl_zettel.md",
     "_Templates/instruction_zettel_extraction.md",
     "10_Sources/Books",
