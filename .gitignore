@@ -1,0 +1,10 @@
+# iCloud一時ファイル（Windows）
+*.icloud
+
+# Obsidianワークスペース（端末固有の設定）
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
