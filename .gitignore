@@ -8,3 +8,4 @@
 # OS生成ファイル
 .DS_Store
 Thumbs.db
+.obsidian/plugins/semantic-vault-mcp/data.json
