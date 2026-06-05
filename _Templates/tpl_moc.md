@@ -1,8 +1,7 @@
 ---
-title: "MOC - 習慣形成"
+title: "<% tp.file.title %>"
 type: moc
-created: 2024-06-10
-updated: 2024-06-20
-tags:
-  - 習慣形成
+created: <% tp.date.now("YYYY-MM-DD") %>
+updated: <% tp.date.now("YYYY-MM-DD") %>
+tags: []
 ---

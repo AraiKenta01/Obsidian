@@ -1,10 +1,8 @@
 ---
-id: "{{date:YYYYMMDDHHmmss}}"
-title: "{{title}}"
-type: zettel
-status: seedling
-created: {{date:YYYY-MM-DD}}
-updated: {{date:YYYY-MM-DD}}
+id: "<% tp.date.now("YYYYMMDDHHmmss") %>"
+title: "<% tp.file.title %>"
+created: <% tp.date.now("YYYY-MM-DD") %>
+updated: <% tp.date.now("YYYY-MM-DD") %>
 sources: []
 tags: []
 ---
