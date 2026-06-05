@@ -1,8 +1,8 @@
 ---
-id: "<% tp.date.now("YYYYMMDDHHmmss") %>"
-title: "<% tp.file.title %>"
-created: <% tp.date.now("YYYY-MM-DD") %>
-updated: <% tp.date.now("YYYY-MM-DD") %>
+id: "20260605192251"
+title: "Untitled"
+created: 2026-06-05
+updated: 2026-06-05
 sources: []
 tags: []
 ---
