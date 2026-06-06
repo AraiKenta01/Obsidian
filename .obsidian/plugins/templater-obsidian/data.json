@@ -29,8 +29,8 @@
   "syntax_highlighting": true,
   "syntax_highlighting_mobile": false,
   "enabled_templates_hotkeys": [
-    "_Templates/tpl_zettel.md",
-    "_Templates/tpl_source.md"
+    "_Templates/permanent-template.md",
+    "_Templates/literature-template.md"
   ],
   "startup_templates": [
     ""
