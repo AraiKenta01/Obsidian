@@ -1,14 +1,14 @@
 ---
-id: <% tp.date.now('YYYYMMDDHHmm') %>
-title: <% tp.file.title %>
+id: "<% tp.date.now('YYYYMMDDHHmmss') %>"
+title: "<% tp.file.title %>"
 type: permanent
 created: <% tp.date.now('YYYY-MM-DD') %>
-modified: <% tp.date.now('YYYY-MM-DD') %>
+updated: <% tp.date.now('YYYY-MM-DD') %>
 sources:
+  -
 tags:
   -
 ---
-## 主張 
 
 <!-- タイトルと同じ主張を、もう少し丁寧に展開した1〜2文 -->
 
@@ -18,11 +18,11 @@ tags:
 
 ## 具体例
 
-<!-- 具体例があれば1つ（任意） -->
+<!-- 任意。あると理解しやすい場合だけ -->
 
-## 関連ノート
+## リンク
 
-- [[]] —
+- [[]] ← 
 
 ## 出典
 

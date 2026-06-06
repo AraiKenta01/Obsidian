@@ -1,10 +1,10 @@
 ---
-title: "MOC - {{テーマ名}}"
+title: "MOC - <% tp.file.title.replace('MOC - ', '') %>"
 type: moc
-created: {{date:YYYY-MM-DD}}
-modified: {{date:YYYY-MM-DD}}
+created: <% tp.date.now('YYYY-MM-DD') %>
+updated: <% tp.date.now('YYYY-MM-DD') %>
 tags:
-  - {{テーマ}}
+  -
 ---
 
 ## 中心的な問い
