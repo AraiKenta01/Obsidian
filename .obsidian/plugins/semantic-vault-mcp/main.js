@@ -17585,6 +17585,8 @@ var require_utils2 = __commonJS({
             var newIndex = getMaxIndex(target) + 1;
             target[newIndex] = source;
             setMaxIndex(target, newIndex);
+          } else if (options && options.strictMerge) {
+            return [target, source];
           } else if (options && (options.plainObjects || options.allowPrototypes) || !has.call(Object.prototype, source)) {
             target[source] = true;
           }
@@ -17866,7 +17868,7 @@ var require_stringify = __commonJS({
       }
       if (obj === null) {
         if (strictNullHandling) {
-          return encoder && !encodeValuesOnly ? encoder(prefix, defaults2.encoder, charset, "key", format) : prefix;
+          return formatter(encoder && !encodeValuesOnly ? encoder(prefix, defaults2.encoder, charset, "key", format) : prefix);
         }
         obj = "";
       }
@@ -17884,7 +17886,9 @@ var require_stringify = __commonJS({
       var objKeys;
       if (generateArrayPrefix === "comma" && isArray(obj)) {
         if (encodeValuesOnly && encoder) {
-          obj = utils.maybeMap(obj, encoder);
+          obj = utils.maybeMap(obj, function(v) {
+            return v == null ? v : encoder(v);
+          });
         }
         objKeys = [{ value: obj.length > 0 ? obj.join(",") || null : void 0 }];
       } else if (isArray(filter2)) {
@@ -18022,6 +18026,9 @@ var require_stringify = __commonJS({
       var sideChannel = getSideChannel();
       for (var i = 0; i < objKeys.length; ++i) {
         var key = objKeys[i];
+        if (typeof key === "undefined" || key === null) {
+          continue;
+        }
         var value = obj[key];
         if (options.skipNulls && value === null) {
           continue;
@@ -18051,9 +18058,9 @@ var require_stringify = __commonJS({
       var prefix = options.addQueryPrefix === true ? "?" : "";
       if (options.charsetSentinel) {
         if (options.charset === "iso-8859-1") {
-          prefix += "utf8=%26%2310003%3B&";
+          prefix += "utf8=%26%2310003%3B" + options.delimiter;
         } else {
-          prefix += "utf8=%E2%9C%93&";
+          prefix += "utf8=%E2%9C%93" + options.delimiter;
         }
       }
       return joined.length > 0 ? prefix + joined : "";
@@ -18088,6 +18095,7 @@ var require_parse = __commonJS({
       parseArrays: true,
       plainObjects: false,
       strictDepth: false,
+      strictMerge: true,
       strictNullHandling: false,
       throwOnLimitExceeded: false
     };
@@ -18114,9 +18122,9 @@ var require_parse = __commonJS({
       var limit = options.parameterLimit === Infinity ? void 0 : options.parameterLimit;
       var parts = cleanStr.split(
         options.delimiter,
-        options.throwOnLimitExceeded ? limit + 1 : limit
+        options.throwOnLimitExceeded && typeof limit !== "undefined" ? limit + 1 : limit
       );
-      if (options.throwOnLimitExceeded && parts.length > limit) {
+      if (options.throwOnLimitExceeded && typeof limit !== "undefined" && parts.length > limit) {
         throw new RangeError("Parameter limit exceeded. Only " + limit + " parameter" + (limit === 1 ? "" : "s") + " allowed.");
       }
       var skipIndex = -1;
@@ -18176,7 +18184,7 @@ var require_parse = __commonJS({
         }
         if (key !== null) {
           var existing = has.call(obj, key);
-          if (existing && options.duplicates === "combine") {
+          if (existing && (options.duplicates === "combine" || part.indexOf("[]=") > -1)) {
             obj[key] = utils.combine(
               obj[key],
               val,
@@ -18235,8 +18243,8 @@ var require_parse = __commonJS({
       }
       return leaf;
     };
-    var splitKeyIntoSegments = function splitKeyIntoSegments2(givenKey, options) {
-      var key = options.allowDots ? givenKey.replace(/\.([^.[]+)/g, "[$1]") : givenKey;
+    var splitKeyIntoSegments = function splitKeyIntoSegments2(originalKey, options) {
+      var key = options.allowDots ? originalKey.replace(/\.([^.[]+)/g, "[$1]") : originalKey;
       if (options.depth <= 0) {
         if (!options.plainObjects && has.call(Object.prototype, key)) {
           if (!options.allowPrototypes) {
@@ -18245,37 +18253,56 @@ var require_parse = __commonJS({
         }
         return [key];
       }
-      var brackets = /(\[[^[\]]*])/;
-      var child = /(\[[^[\]]*])/g;
-      var segment = brackets.exec(key);
-      var parent = segment ? key.slice(0, segment.index) : key;
-      var keys = [];
+      var segments = [];
+      var first = key.indexOf("[");
+      var parent = first >= 0 ? key.slice(0, first) : key;
       if (parent) {
         if (!options.plainObjects && has.call(Object.prototype, parent)) {
           if (!options.allowPrototypes) {
             return;
           }
         }
-        keys[keys.length] = parent;
+        segments[segments.length] = parent;
       }
-      var i = 0;
-      while ((segment = child.exec(key)) !== null && i < options.depth) {
-        i += 1;
-        var segmentContent = segment[1].slice(1, -1);
-        if (!options.plainObjects && has.call(Object.prototype, segmentContent)) {
-          if (!options.allowPrototypes) {
-            return;
+      var n = key.length;
+      var open = first;
+      var collected = 0;
+      while (open >= 0 && collected < options.depth) {
+        var level = 1;
+        var i = open + 1;
+        var close = -1;
+        while (i < n && close < 0) {
+          var cu = key.charCodeAt(i);
+          if (cu === 91) {
+            level += 1;
+          } else if (cu === 93) {
+            level -= 1;
+            if (level === 0) {
+              close = i;
+            }
           }
+          i += 1;
         }
-        keys[keys.length] = segment[1];
+        if (close < 0) {
+          segments[segments.length] = "[" + key.slice(open) + "]";
+          return segments;
+        }
+        var seg = key.slice(open, close + 1);
+        var content = seg.slice(1, -1);
+        if (!options.plainObjects && has.call(Object.prototype, content) && !options.allowPrototypes) {
+          return;
+        }
+        segments[segments.length] = seg;
+        collected += 1;
+        open = key.indexOf("[", close + 1);
       }
-      if (segment) {
+      if (open >= 0) {
         if (options.strictDepth === true) {
           throw new RangeError("Input depth exceeded depth option of " + options.depth + " and strictDepth is true");
         }
-        keys[keys.length] = "[" + key.slice(segment.index) + "]";
+        segments[segments.length] = "[" + key.slice(open) + "]";
       }
-      return keys;
+      return segments;
     };
     var parseKeys = function parseQueryStringKeys(givenKey, val, options, valuesParsed) {
       if (!givenKey) {
@@ -18333,6 +18360,7 @@ var require_parse = __commonJS({
         parseArrays: opts.parseArrays !== false,
         plainObjects: typeof opts.plainObjects === "boolean" ? opts.plainObjects : defaults2.plainObjects,
         strictDepth: typeof opts.strictDepth === "boolean" ? !!opts.strictDepth : defaults2.strictDepth,
+        strictMerge: typeof opts.strictMerge === "boolean" ? !!opts.strictMerge : defaults2.strictMerge,
         strictNullHandling: typeof opts.strictNullHandling === "boolean" ? opts.strictNullHandling : defaults2.strictNullHandling,
         throwOnLimitExceeded: typeof opts.throwOnLimitExceeded === "boolean" ? opts.throwOnLimitExceeded : false
       };
@@ -29192,8 +29220,10 @@ ${cb}` : comment;
           }
         }
         if (afterDoc) {
-          Array.prototype.push.apply(doc.errors, this.errors);
-          Array.prototype.push.apply(doc.warnings, this.warnings);
+          for (let i = 0; i < this.errors.length; ++i)
+            doc.errors.push(this.errors[i]);
+          for (let i = 0; i < this.warnings.length; ++i)
+            doc.warnings.push(this.warnings[i]);
         } else {
           doc.errors = this.errors;
           doc.warnings = this.warnings;
@@ -29928,7 +29958,7 @@ var require_lexer = __commonJS({
           const n = (yield* this.pushCount(1)) + (yield* this.pushSpaces(true));
           this.indentNext = this.indentValue + 1;
           this.indentValue += n;
-          return yield* this.parseBlockStart();
+          return "block-start";
         }
         return "doc";
       }
@@ -30227,28 +30257,38 @@ var require_lexer = __commonJS({
         return 0;
       }
       *pushIndicators() {
-        switch (this.charAt(0)) {
-          case "!":
-            return (yield* this.pushTag()) + (yield* this.pushSpaces(true)) + (yield* this.pushIndicators());
-          case "&":
-            return (yield* this.pushUntil(isNotAnchorChar)) + (yield* this.pushSpaces(true)) + (yield* this.pushIndicators());
-          case "-":
-          // this is an error
-          case "?":
-          // this is an error outside flow collections
-          case ":": {
-            const inFlow = this.flowLevel > 0;
-            const ch1 = this.charAt(1);
-            if (isEmpty(ch1) || inFlow && flowIndicatorChars.has(ch1)) {
-              if (!inFlow)
-                this.indentNext = this.indentValue + 1;
-              else if (this.flowKey)
-                this.flowKey = false;
-              return (yield* this.pushCount(1)) + (yield* this.pushSpaces(true)) + (yield* this.pushIndicators());
+        let n = 0;
+        loop: while (true) {
+          switch (this.charAt(0)) {
+            case "!":
+              n += yield* this.pushTag();
+              n += yield* this.pushSpaces(true);
+              continue loop;
+            case "&":
+              n += yield* this.pushUntil(isNotAnchorChar);
+              n += yield* this.pushSpaces(true);
+              continue loop;
+            case "-":
+            // this is an error
+            case "?":
+            // this is an error outside flow collections
+            case ":": {
+              const inFlow = this.flowLevel > 0;
+              const ch1 = this.charAt(1);
+              if (isEmpty(ch1) || inFlow && flowIndicatorChars.has(ch1)) {
+                if (!inFlow)
+                  this.indentNext = this.indentValue + 1;
+                else if (this.flowKey)
+                  this.flowKey = false;
+                n += yield* this.pushCount(1);
+                n += yield* this.pushSpaces(true);
+                continue loop;
+              }
             }
           }
+          break loop;
         }
-        return 0;
+        return n;
       }
       *pushTag() {
         if (this.charAt(1) === "<") {
@@ -30409,6 +30449,13 @@ var require_parser = __commonJS({
       }
       return prev.splice(i, prev.length);
     }
+    function arrayPushArray(target, source) {
+      if (source.length < 1e5)
+        Array.prototype.push.apply(target, source);
+      else
+        for (let i = 0; i < source.length; ++i)
+          target.push(source[i]);
+    }
     function fixFlowSeqItems(fc) {
       if (fc.start.type === "flow-seq-start") {
         for (const it of fc.items) {
@@ -30418,11 +30465,11 @@ var require_parser = __commonJS({
             delete it.key;
             if (isFlowToken(it.value)) {
               if (it.value.end)
-                Array.prototype.push.apply(it.value.end, it.sep);
+                arrayPushArray(it.value.end, it.sep);
               else
                 it.value.end = it.sep;
             } else
-              Array.prototype.push.apply(it.start, it.sep);
+              arrayPushArray(it.start, it.sep);
             delete it.sep;
           }
         }
@@ -30778,7 +30825,7 @@ var require_parser = __commonJS({
                 const prev = map.items[map.items.length - 2];
                 const end = (_a7 = prev == null ? void 0 : prev.value) == null ? void 0 : _a7.end;
                 if (Array.isArray(end)) {
-                  Array.prototype.push.apply(end, it.start);
+                  arrayPushArray(end, it.start);
                   end.push(this.sourceToken);
                   map.items.pop();
                   return;
@@ -30967,7 +31014,7 @@ var require_parser = __commonJS({
                 const prev = seq.items[seq.items.length - 2];
                 const end = (_a7 = prev == null ? void 0 : prev.value) == null ? void 0 : _a7.end;
                 if (Array.isArray(end)) {
-                  Array.prototype.push.apply(end, it.start);
+                  arrayPushArray(end, it.start);
                   end.push(this.sourceToken);
                   seq.items.pop();
                   return;
@@ -88807,7 +88854,7 @@ var import_crypto3 = require("crypto");
 
 // src/version.ts
 function getVersion() {
-  return "0.11.31";
+  return "0.11.32";
 }
 
 // src/security/path-validator.ts
@@ -93457,6 +93504,30 @@ var GraphTraversal = class {
     this.app = app;
   }
   /**
+   * Get a human-friendly graph node title for a file.
+   *
+   * Vaults commonly use <topic>/index.md as landing pages. Showing every
+   * such node as "index" makes graph results ambiguous, so use the parent
+   * folder name for index files when available.
+   */
+  getNodeTitle(file) {
+    var _a7;
+    if (file.basename === "index" && ((_a7 = file.parent) == null ? void 0 : _a7.name)) {
+      return file.parent.name;
+    }
+    return file.basename;
+  }
+  /**
+   * Resolve a path to a graph node title, falling back to the path basename.
+   */
+  getNodeTitleForPath(filePath) {
+    const file = this.app.vault.getAbstractFileByPath(filePath);
+    if (file instanceof import_obsidian6.TFile) {
+      return this.getNodeTitle(file);
+    }
+    return filePath.replace(/\.md$/, "").split("/").pop() || filePath;
+  }
+  /**
    * Get all nodes (files) in the vault
    */
   getAllNodes() {
@@ -93464,7 +93535,7 @@ var GraphTraversal = class {
     return files.map((file) => ({
       file,
       path: file.path,
-      title: file.basename,
+      title: this.getNodeTitle(file),
       metadata: this.app.metadataCache.getFileCache(file) || void 0
     }));
   }
@@ -93509,8 +93580,23 @@ var GraphTraversal = class {
    * Get unresolved links from a file
    */
   getUnresolvedLinks(filePath) {
-    const unresolvedLinks = this.app.metadataCache.unresolvedLinks[filePath];
+    var _a7;
+    const unresolvedLinks = (_a7 = this.app.metadataCache.unresolvedLinks) == null ? void 0 : _a7[filePath];
     return unresolvedLinks ? Object.keys(unresolvedLinks) : [];
+  }
+  /**
+   * Get unresolved forward links as graph edges.
+   */
+  getUnresolvedForwardLinks(filePath) {
+    var _a7;
+    const unresolvedLinks = (_a7 = this.app.metadataCache.unresolvedLinks) == null ? void 0 : _a7[filePath];
+    if (!unresolvedLinks) return [];
+    return Object.entries(unresolvedLinks).map(([targetPath, count]) => ({
+      source: filePath,
+      target: targetPath,
+      type: "link",
+      count
+    }));
   }
   /**
    * Get all files that share tags with the given file
@@ -93586,7 +93672,7 @@ var GraphTraversal = class {
       const node = {
         file,
         path: file.path,
-        title: file.basename,
+        title: this.getNodeTitle(file),
         metadata: this.app.metadataCache.getFileCache(file) || void 0
       };
       if (nodeFilter && !nodeFilter(node)) continue;
@@ -93703,7 +93789,7 @@ var GraphTraversal = class {
       const neighbors2 = recentFiles.map((file2) => ({
         file: file2,
         path: file2.path,
-        title: file2.basename,
+        title: this.getNodeTitle(file2),
         metadata: this.app.metadataCache.getFileCache(file2) || void 0
       }));
       const rootNode = {
@@ -93732,7 +93818,7 @@ var GraphTraversal = class {
     const node = {
       file,
       path: file.path,
-      title: file.basename,
+      title: this.getNodeTitle(file),
       metadata: this.app.metadataCache.getFileCache(file) || void 0
     };
     const forwardLinks = this.getForwardLinks(filePath);
@@ -93748,12 +93834,75 @@ var GraphTraversal = class {
         neighbors.push({
           file: neighborFile,
           path: neighborFile.path,
-          title: neighborFile.basename,
+          title: this.getNodeTitle(neighborFile),
           metadata: this.app.metadataCache.getFileCache(neighborFile) || void 0
         });
       }
     }
     return { node, neighbors, edges: allEdges };
+  }
+  /**
+   * Calculate vault-wide graph statistics.
+   *
+   * Treats the graph as undirected for component analysis (a link from A to B
+   * means A and B are in the same component) while keeping link counts directed
+   * (each resolved-link occurrence is one totalLink, matching how Obsidian's
+   * metadataCache exposes them). Orphans are nodes with no resolved links in
+   * either direction. isolatedClusters is the total connected-component count,
+   * inclusive of singletons — derive non-trivial cluster count as
+   * `isolatedClusters - orphanCount` if needed.
+   *
+   * O(V + E) over the resolvedLinks adjacency, single pass.
+   */
+  getVaultStatistics() {
+    var _a7;
+    const mdFiles = this.app.vault.getFiles().filter((f) => f.extension === "md");
+    const totalNotes = mdFiles.length;
+    const resolved = (_a7 = this.app.metadataCache.resolvedLinks) != null ? _a7 : {};
+    const adjacency = /* @__PURE__ */ new Map();
+    for (const file of mdFiles) {
+      adjacency.set(file.path, /* @__PURE__ */ new Set());
+    }
+    let totalLinks = 0;
+    for (const [source, targets] of Object.entries(resolved)) {
+      if (!adjacency.has(source)) continue;
+      const sourceSet = adjacency.get(source);
+      for (const [target, count] of Object.entries(targets)) {
+        if (!adjacency.has(target)) continue;
+        sourceSet.add(target);
+        adjacency.get(target).add(source);
+        totalLinks += count;
+      }
+    }
+    const visited = /* @__PURE__ */ new Set();
+    const componentSizes = [];
+    for (const start of adjacency.keys()) {
+      if (visited.has(start)) continue;
+      let size = 0;
+      const queue = [start];
+      while (queue.length > 0) {
+        const node = queue.pop();
+        if (visited.has(node)) continue;
+        visited.add(node);
+        size++;
+        for (const neighbor of adjacency.get(node)) {
+          if (!visited.has(neighbor)) queue.push(neighbor);
+        }
+      }
+      componentSizes.push(size);
+    }
+    const orphanCount = componentSizes.filter((s) => s === 1).length;
+    const largestComponentSize = componentSizes.length > 0 ? Math.max(...componentSizes) : 0;
+    const isolatedClusters = componentSizes.length;
+    const averageDegree = totalNotes > 0 ? totalLinks * 2 / totalNotes : 0;
+    return {
+      totalNotes,
+      totalLinks,
+      orphanCount,
+      averageDegree,
+      largestComponentSize,
+      isolatedClusters
+    };
   }
   /**
    * Calculate graph statistics for a file
@@ -93949,7 +94098,7 @@ var GraphSearchTool = class {
     const paths = rawPaths.map(
       (pathList) => pathList.map((filePath) => ({
         path: filePath,
-        title: filePath.replace(/\.md$/, "").split("/").pop() || filePath
+        title: this.graphTraversal.getNodeTitleForPath(filePath)
       }))
     );
     return {
@@ -93984,19 +94133,41 @@ var GraphSearchTool = class {
     };
   }
   /**
-   * Get link statistics for a file
+   * Get link statistics — vault-wide when sourcePath is omitted (#132),
+   * per-node when sourcePath is provided.
    */
   getStatistics(params) {
     if (!params.sourcePath) {
-      throw new Error("Source path is required for statistics operation");
+      const vaultStats = this.graphTraversal.getVaultStatistics();
+      return {
+        operation: "statistics",
+        vaultStatistics: vaultStats,
+        message: `Vault-wide statistics: ${vaultStats.totalNotes} notes, ${vaultStats.totalLinks} links, ${vaultStats.orphanCount} orphans, ${vaultStats.isolatedClusters} components`,
+        workflow: {
+          message: "Vault statistics retrieved. You can drill into specific files or explore the largest component.",
+          suggested_next: [
+            {
+              description: "Get per-node statistics for a specific file",
+              command: "graph:statistics",
+              reason: "Pass sourcePath to see degree/tag counts for one note"
+            },
+            {
+              description: "Traverse from a known hub",
+              command: "graph:traverse",
+              reason: "Explore the connected structure of the largest component"
+            }
+          ]
+        }
+      };
     }
     const stats = this.graphTraversal.getNodeStatistics(params.sourcePath);
     const file = this.app.vault.getAbstractFileByPath(params.sourcePath);
+    const title = file instanceof import_obsidian7.TFile ? this.graphTraversal.getNodeTitle(file) : params.sourcePath;
     return {
       operation: "statistics",
       sourcePath: params.sourcePath,
       statistics: stats,
-      message: `Link statistics for ${(file == null ? void 0 : file.name) || params.sourcePath}`,
+      message: `Link statistics for ${title}`,
       workflow: {
         message: "Statistics retrieved. You can explore the actual links or find connected nodes.",
         suggested_next: [
@@ -94035,7 +94206,7 @@ var GraphSearchTool = class {
         const cache = this.app.metadataCache.getFileCache(file);
         nodes.push({
           path: edge.source,
-          title: file.name.replace(/\.md$/, ""),
+          title: this.graphTraversal.getNodeTitle(file),
           type: "file",
           tags: (_a7 = cache == null ? void 0 : cache.tags) == null ? void 0 : _a7.map((t) => t.tag),
           links: {
@@ -94080,14 +94251,16 @@ var GraphSearchTool = class {
       throw new Error("Source path is required for forward links operation");
     }
     const forwardLinks = this.graphTraversal.getForwardLinks(params.sourcePath);
+    const unresolvedLinks = params.includeUnresolved ? this.graphTraversal.getUnresolvedForwardLinks(params.sourcePath) : [];
+    const allForwardLinks = [...forwardLinks, ...unresolvedLinks];
     const nodes = [];
-    for (const edge of forwardLinks) {
+    for (const edge of allForwardLinks) {
       const file = this.app.vault.getAbstractFileByPath(edge.target);
       if (file && file instanceof import_obsidian7.TFile) {
         const cache = this.app.metadataCache.getFileCache(file);
         nodes.push({
           path: edge.target,
-          title: file.name.replace(/\.md$/, ""),
+          title: this.graphTraversal.getNodeTitle(file),
           type: "file",
           tags: (_a7 = cache == null ? void 0 : cache.tags) == null ? void 0 : _a7.map((t) => t.tag),
           links: {
@@ -94103,8 +94276,8 @@ var GraphSearchTool = class {
       operation: "forwardlinks",
       sourcePath: params.sourcePath,
       nodes,
-      edges: forwardLinks,
-      message: `Found ${forwardLinks.length} files linked from this file`,
+      edges: allForwardLinks,
+      message: `Found ${allForwardLinks.length} files linked from this file`,
       workflow: {
         message: "Forward links retrieved. You can explore these referenced files.",
         suggested_next: [
@@ -96655,6 +96828,12 @@ function toIsoOptional(value) {
   }
   return void 0;
 }
+function toPlainArray(value) {
+  if (Array.isArray(value)) return value;
+  const wrapped = value;
+  if (wrapped && typeof wrapped.array === "function") return wrapped.array();
+  return [];
+}
 function asDataviewAPI(api) {
   return api;
 }
@@ -96679,6 +96858,7 @@ var DataviewTool = class {
    * Execute a Dataview query
    */
   async executeQuery(query, format = "dql") {
+    var _a7;
     if (!this.isAvailable()) {
       throw new Error("Dataview plugin is not available or not enabled");
     }
@@ -96692,7 +96872,7 @@ var DataviewTool = class {
           query,
           format,
           result: this.formatQueryResult(result),
-          type: result.type || "unknown",
+          type: ((_a7 = result.value) == null ? void 0 : _a7.type) || "unknown",
           error: innerSuccess ? void 0 : result.error,
           workflow: this.generateQueryWorkflow(query, result),
           hints: this.generateQueryHints(query)
@@ -96829,27 +97009,29 @@ var DataviewTool = class {
    * Format query result for MCP response
    */
   formatQueryResult(result) {
-    var _a7, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k;
+    var _a7;
     if (!result) return null;
-    switch (result.type) {
+    const payload = result.value;
+    if (!payload) return null;
+    switch (payload.type) {
       case "list":
         return {
           type: "list",
-          values: (_b = (_a7 = result.values) == null ? void 0 : _a7.array()) != null ? _b : []
+          values: toPlainArray(payload.values)
         };
       case "table":
         return {
           type: "table",
-          headers: (_c = result.headers) != null ? _c : [],
-          values: (_f = (_e = (_d = result.values) == null ? void 0 : _d.array()) == null ? void 0 : _e.map((row) => {
+          headers: (_a7 = payload.headers) != null ? _a7 : [],
+          values: toPlainArray(payload.values).map((row) => {
             const tableRow = row;
             return typeof (tableRow == null ? void 0 : tableRow.array) === "function" ? tableRow.array() : row;
-          })) != null ? _f : []
+          })
         };
       case "task":
         return {
           type: "task",
-          values: (_i = (_h = (_g = result.values) == null ? void 0 : _g.array()) == null ? void 0 : _h.map((task) => {
+          values: toPlainArray(payload.values).map((task) => {
             const dvTask = task;
             return {
               text: dvTask.text,
@@ -96857,12 +97039,12 @@ var DataviewTool = class {
               line: dvTask.line,
               path: dvTask.path
             };
-          })) != null ? _i : []
+          })
         };
       case "calendar":
         return {
           type: "calendar",
-          values: (_k = (_j = result.values) == null ? void 0 : _j.array()) != null ? _k : []
+          values: toPlainArray(payload.values)
         };
       default:
         return {
@@ -98526,7 +98708,7 @@ function formatWebFetch(response) {
 
 // src/formatters/index.ts
 function normalizeResponse(key, response) {
-  var _a7, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w;
+  var _a7, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m, _n, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y;
   const resp = typeof response === "object" && response !== null ? response : {};
   switch (key) {
     // vault.move/rename: router returns {oldPath, newPath}, formatter expects {source, destination}
@@ -98625,6 +98807,19 @@ function normalizeResponse(key, response) {
         error: dvResp.error
       };
     }
+    // dataview.status: detector returns {installed, enabled, apiReady, version},
+    // formatter expects {available, version}. Without this bridge the formatter
+    // reads a non-existent `available` field and always renders "not available"
+    // even when Dataview is fully ready (#216). Treat apiReady as the source of
+    // truth (it already implies installed + enabled), falling back to the
+    // conjunction for older status shapes.
+    case "dataview.status": {
+      const s = resp;
+      return {
+        available: (_m = (_l = s.available) != null ? _l : s.apiReady) != null ? _m : Boolean(s.installed) && Boolean(s.enabled),
+        version: s.version
+      };
+    }
     // edit.window: router returns {isError, content}, formatter expects {success, path}
     case "edit.window":
     case "edit.from_buffer": {
@@ -98632,7 +98827,7 @@ function normalizeResponse(key, response) {
       if (editResp.isError !== void 0) {
         return {
           success: !editResp.isError,
-          path: (_l = editResp.path) != null ? _l : "file",
+          path: (_n = editResp.path) != null ? _n : "file",
           operation: "window",
           content: editResp.content
         };
@@ -98643,8 +98838,8 @@ function normalizeResponse(key, response) {
     case "edit.at_line": {
       const lineResp = resp;
       return {
-        success: (_m = lineResp.success) != null ? _m : true,
-        path: (_n = lineResp.path) != null ? _n : "file",
+        success: (_o = lineResp.success) != null ? _o : true,
+        path: (_p = lineResp.path) != null ? _p : "file",
         operation: "at_line",
         line: lineResp.line,
         mode: lineResp.mode
@@ -98665,9 +98860,9 @@ function normalizeResponse(key, response) {
       const edges = resp.edges || [];
       if (traverseNodes && Array.isArray(traverseNodes)) {
         return {
-          sourcePath: (_p = (_o = resp.sourcePath) != null ? _o : resp.message) != null ? _p : "",
-          maxDepth: (_q = graphStats == null ? void 0 : graphStats.maxDepthReached) != null ? _q : 3,
-          totalNodes: (_r = graphStats == null ? void 0 : graphStats.totalNodes) != null ? _r : traverseNodes.length,
+          sourcePath: (_r = (_q = resp.sourcePath) != null ? _q : resp.message) != null ? _r : "",
+          maxDepth: (_s = graphStats == null ? void 0 : graphStats.maxDepthReached) != null ? _s : 3,
+          totalNodes: (_t = graphStats == null ? void 0 : graphStats.totalNodes) != null ? _t : traverseNodes.length,
           nodes: traverseNodes.map((n) => {
             const outgoing = edges.filter((e) => e.source === n.path).map((e) => e.target.split("/").pop() || e.target);
             return {
@@ -98698,7 +98893,7 @@ function normalizeResponse(key, response) {
           traversalPath: resp.traversalPath,
           details: {
             startNode: details.startNode,
-            searchQuery: (_u = (_t = details.searchQuery) != null ? _t : (_s = details.searchQueries) == null ? void 0 : _s.join(", ")) != null ? _u : "",
+            searchQuery: (_w = (_v = details.searchQuery) != null ? _v : (_u = details.searchQueries) == null ? void 0 : _u.join(", ")) != null ? _w : "",
             maxDepth: details.maxDepth,
             totalNodesVisited: details.totalNodesVisited,
             nodesWithMatches: chain.length,
@@ -98713,7 +98908,7 @@ function normalizeResponse(key, response) {
               snippet: (_b2 = node.snippet) != null ? _b2 : { text: "", score: "0", lineNumber: 0, preview: "" }
             };
           }),
-          workflowSuggestions: (_v = resp.workflowSuggestions) != null ? _v : []
+          workflowSuggestions: (_x = resp.workflowSuggestions) != null ? _x : []
         };
       }
       return resp;
@@ -98747,7 +98942,7 @@ function normalizeResponse(key, response) {
       if (resp.source !== void 0 && resp.target !== void 0) {
         return {
           sourcePath: resp.source,
-          totalMatches: (_w = sharedTags == null ? void 0 : sharedTags.length) != null ? _w : 0,
+          totalMatches: (_y = sharedTags == null ? void 0 : sharedTags.length) != null ? _y : 0,
           results: sharedTags && sharedTags.length > 0 ? [{
             file1: resp.source,
             file2: resp.target,
