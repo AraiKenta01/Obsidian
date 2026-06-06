@@ -7,7 +7,7 @@ source_type: book
 url_or_ref: ""
 status: unprocessed
 tags:
-  -
+  - 
 ---
 
 ## 要約
