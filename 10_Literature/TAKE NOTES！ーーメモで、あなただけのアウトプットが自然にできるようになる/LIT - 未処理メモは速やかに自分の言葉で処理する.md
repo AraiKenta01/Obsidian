@@ -2,7 +2,7 @@
 type: literature
 source: "[[TAKE NOTES！ーーメモで、あなただけのアウトプットが自然にできるようになる]]"
 chapter: "メモの書き方"
-status: unprocessed
+status: processed
 ---
 
 ## 著者は何を言っているか
