@@ -1,5 +1,5 @@
 ---
-title: "{{title}}"
+title: TAKE NOTES！ーーメモで、あなただけのアウトプットが自然にできるようになる
 type: source
 subtype: book
 author: ズンク・アーレンス
@@ -7,8 +7,7 @@ published: 2021
 read_date: 2026-06-03
 status: processed
 tags:
-rating: 4
-zettel_count: 12
+  - メモの取り方
 ---
 # 第一章
 計画を立てると、学び続ける持久力を失う。
