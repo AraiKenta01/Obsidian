@@ -1,29 +1,18 @@
 ---
-title: "<% tp.file.title %>"
 type: literature
-created: <% tp.date.now('YYYY-MM-DD') %>
-author: ""
-source_type: book
-url_or_ref: ""
+source: "[[]]"
+chapter: ""
 status: unprocessed
-tags:
-  - 
 ---
 
-## 要約
+## 著者は何を言っているか
 
 <!-- 著者の主張を自分の言葉で2〜4文。コピペ禁止 -->
 
-## 引用（任意）
+## 自分はどう思うか
 
-> 「」（p.XX）
+<!-- 同意/不同意、既存知識との接続、疑問など -->
 
-## 自分のコメント・疑問
+## Zettelの種 →
 
-- 
-- 
-
-## 永続ノート候補
-
-- [ ] 
 - [ ] 
