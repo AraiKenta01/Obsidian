@@ -1,7 +1,7 @@
 ---
 type: literature
-source: "[[]]"
-chapter: ""
+source: "[[ファンクの歴史（下）：ファンク現代編（KINZTO RECORDS）]]"
+chapter: アナログ回帰の3ルート
 status: unprocessed
 ---
 
